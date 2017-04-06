@@ -62,7 +62,7 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
         logging.info("Lemmatizing")
         logging.debug(lemcommand)
         try:
-            p1 = subprocess.run([lemcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).check_returncode()
+            p1 = subprocess.run([lemcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             logging.debug(str(p1.stdout).strip())
         except subprocess.CalledProcessError as e:
             logging.error('Failure while lemmatizing')
@@ -84,7 +84,7 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
     logging.debug(tagcommand)
 
     try:
-        p1 = subprocess.run([tagcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p1 = subprocess.run([tagcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         logging.debug(str(p1.stdout).strip())
     except subprocess.CalledProcessError as e:
         logging.error('Failure while tagging')
@@ -95,7 +95,7 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
     logging.debug(parsecommand)
 
     try:
-        p1 = subprocess.run([parsecommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p1 = subprocess.run([parsecommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         logging.debug(str(p1.stdout).strip())
     except subprocess.CalledProcessError as e:
         logging.error('Failure while parsing')
