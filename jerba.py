@@ -253,7 +253,7 @@ def tokenize(line, special_words):
                     last_start += len(next_tok)
 
                 # Advance to the next non-space character
-                while chunk[last_start].is_space():
+                while chunk[last_start].isspace():
                     last_start += 1
                 current = last_start + 1
 
