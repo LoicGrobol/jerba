@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 ####
@@ -11,8 +11,6 @@
 # of the License, or (at your option) any later version.
 ####
 
-
-import codecs
 import glob
 import shutil
 import time
@@ -22,7 +20,7 @@ import subprocess
 import math
 
 import logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 import psutil
 import marisa_trie
@@ -49,7 +47,7 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
     logging.info('Using %s of memory', memory)
     logging.info('Using %s cores', cores)
 
-    anna, lemclass, tagclass, parseclass = "mate/anna-3.6.1.jar", "is2.lemmatizer.Lemmatizer", "is2.tag.Tagger", "is2.parser.Parser"
+    anna, lemclass, tagclass, parseclass = "mate/anna-3.61.jar", "is2.lemmatizer.Lemmatizer", "is2.tag.Tagger", "is2.parser.Parser"
 
     modelFolder = "models/"
     lemodel = modelFolder+"LemModel"
@@ -63,9 +61,13 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
     if lemodel and lemodel[-1] != "/":
         logging.info("Lemmatizing")
         logging.debug(lemcommand)
-        p1 = subprocess.run([lemcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logging.debug(p1.stdout)
-        logging.debug(p1.stderr)
+        try:
+            p1 = subprocess.run([lemcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).check_returncode()
+            logging.debug(str(p1.stdout).strip())
+        except subprocess.CalledProcessError as e:
+            logging.error('Failure while lemmatizing')
+            logging.debug(str(p1.stderr).strip())
+            raise e
     else:  # TODO: add this part (for non inflectional languages like Chinese and for pre-lemmatized files)
         if lemmatized:
             lemmafile = os.path.join(outfolder, os.path.basename(infile))
@@ -81,17 +83,25 @@ def parsing(infile, outfolder="parses/", memory=None, cores=None, lemmatized=Fal
     logging.info("Tagging")
     logging.debug(tagcommand)
 
-    p1 = subprocess.run([tagcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    logging.debug(p1.stdout)
-    logging.debug(p1.stderr)
+    try:
+        p1 = subprocess.run([tagcommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.debug(str(p1.stdout).strip())
+    except subprocess.CalledProcessError as e:
+        logging.error('Failure while tagging')
+        logging.debug(str(p1.stderr).strip())
+        raise e
 
     logging.info("Parsing")
     logging.debug(parsecommand)
 
-    p1 = subprocess.run([parsecommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out = p1.stdout
+    try:
+        p1 = subprocess.run([parsecommand], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.debug(str(p1.stdout).strip())
+    except subprocess.CalledProcessError as e:
+        logging.error('Failure while parsing')
+        logging.debug(str(p1.stderr).strip())
+        raise e
 
-    logging.debug(out)
     logging.info("Parsed")
 
     # if checkIntegrity(outfile+'_parse') == False:
@@ -237,12 +247,15 @@ def tokenize(line, special_words):
                 if chunk[last_start:current-1] in special_words:
                     yield chunk[last_start:current-1]
                     last_start = current
-                    current += 1
                 else:
                     next_tok = simpletokenize(chunk[last_start:])[0]
                     yield next_tok
                     last_start += len(next_tok)
-                    current = last_start + 1
+
+                # Advance to the next non-space character
+                while chunk[last_start].is_space():
+                    last_start += 1
+                current = last_start + 1
 
 
 def parseSentenceFile(sentence_file, special_words, out_folder=None, memory=None, cores=None, remove_punct=True):
@@ -271,7 +284,14 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--sentencesFile', help='file containing one sentence per line', required=False)
     parser.add_argument('-m', '--memory', help='amount of memory used (eg. `10G`)', default=None, required=False)
     parser.add_argument('-c', '--cores', help='number of cores to use', default=None, required=False)
+    parser.add_argument('-v', '--verbose', action='store_true')
+
     args = vars(parser.parse_args())
+
+    if args['verbose']:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     ti = time.time()
 
